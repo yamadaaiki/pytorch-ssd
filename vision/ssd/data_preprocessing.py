@@ -1,6 +1,14 @@
 from ..transforms.transforms import *
 
 
+class ScaleByStd:
+    def __init__(self, std: float):
+        self.std = std
+ 
+    def __call__(self, img, boxes=None, labels=None):
+        return (img / self.std, boxes, labels)
+
+
 class TrainAugmentation:
     def __init__(self, size, mean=0, std=1.0):
         """
@@ -19,7 +27,8 @@ class TrainAugmentation:
             ToPercentCoords(),
             Resize(self.size),
             SubtractMeans(self.mean),
-            lambda img, boxes=None, labels=None: (img / std, boxes, labels),
+            #lambda img, boxes=None, labels=None: (img / std, boxes, labels),
+            ScaleByStd(std),
             ToTensor(),
         ])
 
@@ -40,7 +49,8 @@ class TestTransform:
             ToPercentCoords(),
             Resize(size),
             SubtractMeans(mean),
-            lambda img, boxes=None, labels=None: (img / std, boxes, labels),
+            #lambda img, boxes=None, labels=None: (img / std, boxes, labels),
+            ScaleByStd(std),
             ToTensor(),
         ])
 
@@ -53,7 +63,8 @@ class PredictionTransform:
         self.transform = Compose([
             Resize(size),
             SubtractMeans(mean),
-            lambda img, boxes=None, labels=None: (img / std, boxes, labels),
+            #lambda img, boxes=None, labels=None: (img / std, boxes, labels),
+            ScaleByStd(std),
             ToTensor()
         ])
 
