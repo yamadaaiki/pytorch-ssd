@@ -24,6 +24,8 @@ from vision.ssd.config import mobilenetv1_ssd_config
 from vision.ssd.config import squeezenet_ssd_config
 from vision.ssd.data_preprocessing import TrainAugmentation, TestTransform
 
+from vision.ssd.proposed_ssd import create_proposed_ssd
+
 parser = argparse.ArgumentParser(
     description='Single Shot MultiBox Detector Training With Pytorch')
 
@@ -192,6 +194,8 @@ if __name__ == '__main__':
     elif args.net == 'mb3-small-ssd-lite':
         create_net = lambda num: create_mobilenetv3_small_ssd_lite(num)
         config = mobilenetv1_ssd_config
+    elif args.net == 'propoed-ssd':
+        create_net = lambda num: create_proposed_ssd(num)
     else:
         logging.fatal("The net type is wrong.")
         parser.print_help(sys.stderr)
@@ -219,7 +223,8 @@ if __name__ == '__main__':
             store_labels(label_file, dataset.class_names)
             logging.info(dataset)
             num_classes = len(dataset.class_names)
-
+        elif args.dataseta_type == 'metastasis_images':
+            dataset = 1 # 自作のデータセットを作らないといけない？
         else:
             raise ValueError(f"Dataset type {args.dataset_type} is not supported.")
         datasets.append(dataset)
@@ -237,6 +242,10 @@ if __name__ == '__main__':
         val_dataset = OpenImagesDataset(dataset_path,
                                         transform=test_transform, target_transform=target_transform,
                                         dataset_type="test")
+        logging.info(val_dataset)
+    elif args.dataset_type == 'metastasis_images':
+        val_dataset = 1
+        #kaenitoikenai
         logging.info(val_dataset)
     logging.info("validation dataset size: {}".format(len(val_dataset)))
 
