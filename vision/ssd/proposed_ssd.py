@@ -1,5 +1,6 @@
 import torch
 from torch.nn import Conv2d, Sequential, ModuleList, ReLU, BatchNorm2d, GroupNorm, ZeroPad2d
+from ..nn.scaled_l2_norm import ScaledL2Norm
 from ..nn.proposed_detect_metastases import prpposed_detect_metastases
 
 from .ssd import SSD
@@ -8,13 +9,14 @@ from .config import proposed_ssd_config as config
 
 
 def create_proposed_ssd(num_classes, is_test=False):
-    vgg_config = [64, 64, 'M', 128, 128, 128, 'M', 256, 256, 256, 'M']
-    base_net = ModuleList(prpposed_detect_metastases(vgg_config))
+    proposed_config = [64, 64, 'M', 128, 128, 128, 'M', 256, 256, 256, 'M']
+    base_net = ModuleList(prpposed_detect_metastases(proposed_config))
     
     # これはなんだ？
     source_layer_indexes = [
-        (23, GroupNorm(8, 512)),
-        len(base_net),
+        (11, ScaledL2Norm(512, 10)),
+        (18, ScaledL2Norm(256, 5)),
+        23, len(base_net)
         ]
     extras = ModuleList([
         Sequential(

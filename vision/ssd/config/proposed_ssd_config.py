@@ -5,7 +5,7 @@ from vision.utils.box_utils import SSDSpec, SSDBoxSizes, generate_ssd_priors
 
 image_size = 256
 # koreha nanini setteishitara iinoka?
-image_mean = np.array([])
+image_mean = np.array([127, 127, 127]) # if use gray scale, only 1
 image_std = 1.0
 
 iou_threshold = 0.20
