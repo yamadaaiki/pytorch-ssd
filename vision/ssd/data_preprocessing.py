@@ -19,22 +19,23 @@ class TrainAugmentation:
         self.mean = mean
         self.size = size
         self.augment = Compose([
-            ConvertFromInts(),
-            PhotometricDistort(),
-            Expand(self.mean),
-            RandomSampleCrop(),
-            RandomMirror(),
-            ToPercentCoords(),
-            Resize(self.size),
+            ConvertFromInts(), # np.float32 に変換するクラス
+            # PhotometricDistort(), # 測光のゆがみを入れるクラス
+            Expand(self.mean), # 拡大・縮小（平均から行う）クラス
+            RandomSampleCrop(), # ランダムにクロッピングを行うクラス
+            RandomMirror(), # 左右反転クラス
+            ToPercentCoords(), # 座標のrangeを0-255から0-1に変換するクラス
+            Resize(self.size), # 画像サイズを変更するクラス
+            # 画像のタイプをnp.float32 -> np.float32に変換し，
+            # 全画素からstdを引いた値にするクラス
             SubtractMeans(self.mean),
             #lambda img, boxes=None, labels=None: (img / std, boxes, labels),
-            ScaleByStd(std),
-            ToTensor(),
+            ScaleByStd(std), # stdで画素を割るクラス
+            ToTensor(), # np.float32からテンソルに変換するクラス
         ])
-
+        
     def __call__(self, img, boxes, labels):
         """
-
         Args:
             img: the output of cv.imread in RGB layout.
             boxes: boundding boxes in the form of (x1, y1, x2, y2).
@@ -53,7 +54,7 @@ class TestTransform:
             ScaleByStd(std),
             ToTensor(),
         ])
-
+        
     def __call__(self, image, boxes, labels):
         return self.transform(image, boxes, labels)
 
@@ -67,7 +68,7 @@ class PredictionTransform:
             ScaleByStd(std),
             ToTensor()
         ])
-
+        
     def __call__(self, image):
         image, _, _ = self.transform(image)
         return image
