@@ -18,10 +18,12 @@ from vision.ssd.mobilenetv3_ssd_lite import create_mobilenetv3_large_ssd_lite, c
 from vision.ssd.squeezenet_ssd_lite import create_squeezenet_ssd_lite
 from vision.datasets.voc_dataset import VOCDataset
 from vision.datasets.open_images import OpenImagesDataset
+from vision.datasets.proposed_dataset import ProposedDataset
 from vision.nn.multibox_loss import MultiboxLoss
 from vision.ssd.config import vgg_ssd_config
 from vision.ssd.config import mobilenetv1_ssd_config
 from vision.ssd.config import squeezenet_ssd_config
+from vision.ssd.config import proposed_ssd_config
 from vision.ssd.data_preprocessing import TrainAugmentation, TestTransform
 
 from vision.ssd.proposed_ssd import create_proposed_ssd
@@ -119,14 +121,14 @@ def train(loader, net, criterion, optimizer, device, debug_steps=100, epoch=-1):
         images = images.to(device)
         boxes = boxes.to(device)
         labels = labels.to(device)
-
+        
         optimizer.zero_grad()
         confidence, locations = net(images)
         regression_loss, classification_loss = criterion(confidence, locations, labels, boxes)  # TODO CHANGE BOXES
         loss = regression_loss + classification_loss
         loss.backward()
         optimizer.step()
-
+        
         running_loss += loss.item()
         running_regression_loss += regression_loss.item()
         running_classification_loss += classification_loss.item()
@@ -157,12 +159,12 @@ def test(loader, net, criterion, device):
         boxes = boxes.to(device)
         labels = labels.to(device)
         num += 1
-
+        
         with torch.no_grad():
             confidence, locations = net(images)
             regression_loss, classification_loss = criterion(confidence, locations, labels, boxes)
             loss = regression_loss + classification_loss
-
+            
         running_loss += loss.item()
         running_regression_loss += regression_loss.item()
         running_classification_loss += classification_loss.item()
@@ -196,16 +198,20 @@ if __name__ == '__main__':
         config = mobilenetv1_ssd_config
     elif args.net == 'propoed-ssd':
         create_net = lambda num: create_proposed_ssd(num)
+        config = proposed_ssd_config
     else:
         logging.fatal("The net type is wrong.")
         parser.print_help(sys.stderr)
         sys.exit(1)
+    # 画像変換クラス
     train_transform = TrainAugmentation(config.image_size, config.image_mean, config.image_std)
+    # デフォルボックス生成
     target_transform = MatchPrior(config.priors, config.center_variance,
-                                  config.size_variance, 0.5)
-
+                                  config.size_variance, 0.1)
+    # target_transform = (locations=(num_priors, 4)), labels=(class_num))
+    # for validationset
     test_transform = TestTransform(config.image_size, config.image_mean, config.image_std)
-
+    
     logging.info("Prepare training datasets.")
     datasets = []
     for dataset_path in args.datasets:
@@ -223,8 +229,15 @@ if __name__ == '__main__':
             store_labels(label_file, dataset.class_names)
             logging.info(dataset)
             num_classes = len(dataset.class_names)
+            # ['BACKGROUND', 'Handgun', 'Shotogun']
+            # print(dataset.class_names)
         elif args.dataseta_type == 'metastasis_images':
-            dataset = 1 # 自作のデータセットを作らないといけない？
+            dataset = ProposedDataset(dataset_path, transform=train_transform,
+                                      target_transform=target_transform)
+            label_file = os.path.join(args.checkpoint_folder, "proposed-model-labels.txt")
+            # TODO:kakuninn
+            store_labels(label_file, dataset.class_names)
+            num_class = len(dataset.class_names)
         else:
             raise ValueError(f"Dataset type {args.dataset_type} is not supported.")
         datasets.append(dataset)
@@ -244,7 +257,8 @@ if __name__ == '__main__':
                                         dataset_type="test")
         logging.info(val_dataset)
     elif args.dataset_type == 'metastasis_images':
-        val_dataset = 1
+        val_dataset = ProposedDataset(args.validation_dataset, transform=test_transform,
+                                      target_transform=target_transform, is_test=True)
         #kaenitoikenai
         logging.info(val_dataset)
     logging.info("validation dataset size: {}".format(len(val_dataset)))
@@ -292,7 +306,7 @@ if __name__ == '__main__':
                 net.classification_headers.parameters()
             )}
         ]
-
+        
     timer.start("Load Model")
     if args.resume:
         logging.info(f"Resume from the model {args.resume}")
@@ -326,7 +340,7 @@ if __name__ == '__main__':
         logging.fatal(f"Unsupported Scheduler: {args.scheduler}.")
         parser.print_help(sys.stderr)
         sys.exit(1)
-
+    
     logging.info(f"Start training from epoch {last_epoch + 1}.")
     for epoch in range(last_epoch + 1, args.num_epochs):
         train(train_loader, net, criterion, optimizer,
