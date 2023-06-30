@@ -12,14 +12,20 @@ iou_threshold = 0.20
 center_variance = 0.1
 size_variance = 0.2
 
+# SSDSpec = \
+# collections.namedtuple('SSDSpec', 
+# ['feature_map_size', 'shrinkage', 'box_sizes', 'aspect_ratios'])
+# SSDBoxSizes = \
+# collections.namedtuple('SSDBoxSizes', ['min', 'max'])
 
+# box size is [2, 4, 8, 16, 30, 52]
 specs = [
-    SSDSpec(17, 16, SSDBoxSizes(60, 105), [2, 3]),
-    SSDSpec(10, 32, SSDBoxSizes(105, 150), [2, 3]),
-    SSDSpec(5, 64, SSDBoxSizes(150, 195), [2, 3]),
-    SSDSpec(3, 100, SSDBoxSizes(195, 240), [2, 3]),
-    SSDSpec(2, 150, SSDBoxSizes(240, 285), [2, 3]),
-    SSDSpec(1, 300, SSDBoxSizes(285, 330), [2, 3])
+    SSDSpec(128, 2, SSDBoxSizes(3,  62), [1]),
+    SSDSpec(64,  4, SSDBoxSizes(5,  62), [1]),
+    SSDSpec(32,  8, SSDBoxSizes(9,  62), [1]),
+    SSDSpec(16, 16, SSDBoxSizes(17, 62), [1]),
+    SSDSpec(8,  32, SSDBoxSizes(30, 62), [1]),
+    SSDSpec(4,  64, SSDBoxSizes(52, 62), [1])
     ]
 
 
