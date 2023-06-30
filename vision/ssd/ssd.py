@@ -16,7 +16,7 @@ class SSD(nn.Module):
         """Compose a SSD model using the given components.
         """
         super(SSD, self).__init__()
-
+        
         self.num_classes = num_classes
         self.base_net = base_net
         self.source_layer_indexes = source_layer_indexes
@@ -25,7 +25,7 @@ class SSD(nn.Module):
         self.regression_headers = regression_headers
         self.is_test = is_test
         self.config = config
-
+        
         # register layers in source_layer_indexes by adding them to a module list
         self.source_layer_add_ons = nn.ModuleList([t[1] for t in source_layer_indexes
                                                    if isinstance(t, tuple) and not isinstance(t, GraphPath)])
@@ -73,17 +73,17 @@ class SSD(nn.Module):
             header_index += 1
             confidences.append(confidence)
             locations.append(location)
-
+            
         for layer in self.base_net[end_layer_index:]:
             x = layer(x)
-
+            
         for layer in self.extras:
             x = layer(x)
             confidence, location = self.compute_header(header_index, x)
             header_index += 1
             confidences.append(confidence)
             locations.append(location)
-
+            
         confidences = torch.cat(confidences, 1)
         locations = torch.cat(locations, 1)
         
@@ -96,25 +96,25 @@ class SSD(nn.Module):
             return confidences, boxes
         else:
             return confidences, locations
-
+        
     def compute_header(self, i, x):
         confidence = self.classification_headers[i](x)
         confidence = confidence.permute(0, 2, 3, 1).contiguous()
         confidence = confidence.view(confidence.size(0), -1, self.num_classes)
-
+        
         location = self.regression_headers[i](x)
         location = location.permute(0, 2, 3, 1).contiguous()
         location = location.view(location.size(0), -1, 4)
-
+        
         return confidence, location
-
+    
     def init_from_base_net(self, model):
         self.base_net.load_state_dict(torch.load(model, map_location=lambda storage, loc: storage), strict=True)
         self.source_layer_add_ons.apply(_xavier_init_)
         self.extras.apply(_xavier_init_)
         self.classification_headers.apply(_xavier_init_)
         self.regression_headers.apply(_xavier_init_)
-
+        
     def init_from_pretrained_ssd(self, model):
         state_dict = torch.load(model, map_location=lambda storage, loc: storage)
         state_dict = {k: v for k, v in state_dict.items() if not (k.startswith("classification_headers") or k.startswith("regression_headers"))}
@@ -123,34 +123,65 @@ class SSD(nn.Module):
         self.load_state_dict(model_dict)
         self.classification_headers.apply(_xavier_init_)
         self.regression_headers.apply(_xavier_init_)
-
+        
     def init(self):
         self.base_net.apply(_xavier_init_)
         self.source_layer_add_ons.apply(_xavier_init_)
         self.extras.apply(_xavier_init_)
         self.classification_headers.apply(_xavier_init_)
         self.regression_headers.apply(_xavier_init_)
-
+        
     def load(self, model):
         self.load_state_dict(torch.load(model, map_location=lambda storage, loc: storage))
-
+        
     def save(self, model_path):
         torch.save(self.state_dict(), model_path)
 
 
 class MatchPrior(object):
     def __init__(self, center_form_priors, center_variance, size_variance, iou_threshold):
+        # center_form_priors is config.priors
+        """
+        specs = [
+        SSDSpec(128, 2, SSDBoxSizes(3,  62), [1]),
+        SSDSpec(64,  4, SSDBoxSizes(5,  62), [1]),
+        SSDSpec(32,  8, SSDBoxSizes(9,  62), [1]),
+        SSDSpec(16, 16, SSDBoxSizes(17, 62), [1]),
+        SSDSpec(8,  32, SSDBoxSizes(30, 62), [1]),
+        SSDSpec(4,  64, SSDBoxSizes(52, 62), [1])
+        ]
+        
+        priors = generate_ssd_priors(specs, image_size)
+        priors is The prior boxes represented as [[center_x, center_y, w, h]]. 
+        All the values are relative to the image size.
+        
+        """
         self.center_form_priors = center_form_priors
+        # [[center_x, center_y, w, h], ...] -> [[xmin, ymin, xmax, ymax]]
         self.corner_form_priors = box_utils.center_form_to_corner_form(center_form_priors)
+        # corter_form_priors is config.center_variance (=0.1?) 
         self.center_variance = center_variance
+        # size_varience is config.size_variance (=0.2)
         self.size_variance = size_variance
+        # 0.1? or 0.2? iino?
         self.iou_threshold = iou_threshold
-
+        
     def __call__(self, gt_boxes, gt_labels):
+        # if numpy array, numpy -> torch tensor
         if type(gt_boxes) is np.ndarray:
             gt_boxes = torch.from_numpy(gt_boxes)
+        # if numpy array, numpy -> torch tensor
         if type(gt_labels) is np.ndarray:
             gt_labels = torch.from_numpy(gt_labels)
+        """Assign ground truth boxes and targets to priors.
+        Args:
+        gt_boxes (num_targets, 4): ground truth boxes.
+        gt_labels (num_targets): labels of targets.
+        priors (num_priors, 4): corner form priors
+        Returns:
+        boxes (num_priors, 4): real values for priors.
+        labels (num_priros): labels for priors.
+        """
         boxes, labels = box_utils.assign_priors(gt_boxes, gt_labels,
                                                 self.corner_form_priors, self.iou_threshold)
         boxes = box_utils.corner_form_to_center_form(boxes)
