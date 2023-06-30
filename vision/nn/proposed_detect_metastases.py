@@ -1,7 +1,6 @@
 import torch.nn as nn
 
-
-# borrowed from https://github.com/amdegroot/ssd.pytorch/blob/master/ssd.py
+# base network
 def prpposed_detect_metastases(cfg, norm=False):
     layers = []
     in_channels = 3 # if use gray scale, change from 3 to 1. 
