@@ -51,6 +51,7 @@ class Compose(object):
         self.transforms = transforms
 
     def __call__(self, img, boxes=None, labels=None):
+        # t equals transformer class under here.
         for t in self.transforms:
             img, boxes, labels = t(img, boxes, labels)
         return img, boxes, labels
