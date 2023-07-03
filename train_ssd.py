@@ -196,7 +196,7 @@ if __name__ == '__main__':
     elif args.net == 'mb3-small-ssd-lite':
         create_net = lambda num: create_mobilenetv3_small_ssd_lite(num)
         config = mobilenetv1_ssd_config
-    elif args.net == 'propoed-ssd':
+    elif args.net == 'proposed-ssd':
         create_net = lambda num: create_proposed_ssd(num)
         config = proposed_ssd_config
     else:
@@ -321,7 +321,7 @@ if __name__ == '__main__':
 
     net.to(DEVICE)
 
-    criterion = MultiboxLoss(config.priors, iou_threshold=0.5, neg_pos_ratio=3,
+    criterion = MultiboxLoss(config.priors, iou_threshold=0.2, neg_pos_ratio=3,
                              center_variance=0.1, size_variance=0.2, device=DEVICE)
     optimizer = torch.optim.SGD(params, lr=args.lr, momentum=args.momentum,
                                 weight_decay=args.weight_decay)
