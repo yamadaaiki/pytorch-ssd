@@ -14,32 +14,32 @@ def create_proposed_ssd(num_classes, is_test=False):
     
     # これはなんだ？
     source_layer_indexes = [
-        (11, ScaledL2Norm(512, 10)),
-        (18, ScaledL2Norm(256, 5)),
-        23, len(base_net)
+        (10, ScaledL2Norm(128, 10)),
+        (17, ScaledL2Norm(256, 5)),
+        22,
         ]
     extras = ModuleList([
         Sequential(
             ZeroPad2d(1),
             Conv2d(in_channels=256, out_channels=512, kernel_size=3,
-                   padding='valid', padding_mode='', stride=2),
-            ReLU(),),
+                   padding='valid', stride=2),
+            ReLU(inplace=True),),
         Sequential(
             Conv2d(in_channels=512, out_channels=128, kernel_size=1),
-            ReLU(),),
+            ReLU(inplace=True),),
         Sequential(
             ZeroPad2d(1),
             Conv2d(in_channels=128, out_channels=256, kernel_size=3,
-                   padding='valid', padding_mode='', stride=2),
-            ReLU(),),
+                   padding='valid', stride=2),
+            ReLU(inplace=True),),
         Sequential(
             Conv2d(in_channels=256, out_channels=128, kernel_size=1),
-            ReLU(),),
+            ReLU(inplace=True),),
         Sequential(
             ZeroPad2d(1),
             Conv2d(in_channels=128, out_channels=256, kernel_size=3,
-                   padding='valid', padding_mode='', stride=2),
-            ReLU(),),
+                   padding='valid', stride=2),
+            ReLU(inplace=True),),
         ])
     
     regression_headers = ModuleList([

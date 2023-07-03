@@ -16,12 +16,12 @@ def prpposed_detect_metastases(cfg, norm=False):
             elif norm == "groupnorm":
                 layers =+ [conv2d, nn.GroupNorm(8, v), nn.ReLU(inplace=True)]
             else :
-                layers += [conv2d, nn.ReLU(inplace=True)]
+                layers += [conv2d, nn.ReLU(inplace=False)]
             in_channels = v
     conv4_1 = nn.Conv2d(256, 1024, kernel_size=3, padding=1)
     conv4_2 = nn.Conv2d(1024, 1024, kernel_size=1)
     conv4_3 = nn.Conv2d(1024, 256, kernel_size=1)
-    layers += [conv4_1, nn.ReLU(inplace=True),
-               conv4_2, nn.ReLU(inplace=True),
-               conv4_3, nn.ReLU(inplace=True)]
+    layers += [conv4_1, nn.ReLU(inplace=False),
+               conv4_2, nn.ReLU(inplace=False),
+               conv4_3, nn.ReLU(inplace=False)]
     return layers

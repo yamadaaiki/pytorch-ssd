@@ -47,12 +47,14 @@ class TrainAugmentation:
 class TestTransform:
     def __init__(self, size, mean=0.0, std=1.0):
         self.transform = Compose([
-            ToPercentCoords(),
-            Resize(size),
-            SubtractMeans(mean),
+            ToPercentCoords(), # np.float32 に変換するクラス
+            Resize(size), # 画像サイズを変更するクラス
+            # 画像のタイプをnp.float32 -> np.float32に変換し，
+            # 全画素からstdを引いた値にするクラス
+            SubtractMeans(mean), 
             #lambda img, boxes=None, labels=None: (img / std, boxes, labels),
-            ScaleByStd(std),
-            ToTensor(),
+            ScaleByStd(std), # stdで画素を割るクラス
+            ToTensor(), # np.float32からテンソルに変換するクラス
         ])
         
     def __call__(self, image, boxes, labels):

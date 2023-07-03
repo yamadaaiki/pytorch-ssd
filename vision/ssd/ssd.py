@@ -76,13 +76,14 @@ class SSD(nn.Module):
             
         for layer in self.base_net[end_layer_index:]:
             x = layer(x)
-            
-        for layer in self.extras:
+        
+        for i, layer in enumerate(self.extras):
             x = layer(x)
-            confidence, location = self.compute_header(header_index, x)
-            header_index += 1
-            confidences.append(confidence)
-            locations.append(location)
+            if i in [0, 2, 4]:
+                confidence, location = self.compute_header(header_index, x)
+                header_index += 1
+                confidences.append(confidence)
+                locations.append(location)
             
         confidences = torch.cat(confidences, 1)
         locations = torch.cat(locations, 1)
