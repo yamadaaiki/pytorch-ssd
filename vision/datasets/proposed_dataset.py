@@ -6,6 +6,7 @@ import cv2
 import os
 import imageio
 import skimage.io
+from skimage.color import gray2rgb
 
 
 class ProposedDataset:
@@ -97,6 +98,7 @@ class ProposedDataset:
     # 1枚ずつ座標（xmin, ymin, xmax, ymax）を読み込むを読み込む
     def _get_annotation(self, image_id):
         annotation_file = self.root / f"Annotations/{image_id}.xml"
+        # print(annotation_file)
         objects = ET.parse(annotation_file).findall("object")
         # boxes には　座標リストが入っている．
         boxes = []
@@ -119,16 +121,83 @@ class ProposedDataset:
                 labels.append(self.class_dict[class_name])
                 # difficult な画像は除外する？
                 is_difficult_str = object.find('difficult').text
-                is_difficult.append(int(is_difficult_str) if is_difficult_str else 0)
-                
+                is_difficult.append(int(is_difficult_str) if is_difficult_str else 0)    
         return (np.array(boxes, dtype=np.float32),
                 np.array(labels, dtype=np.int64),
                 np.array(is_difficult, dtype=np.uint8))
         
     def _read_image(self, image_id):
-        image_file = self.root / f"JPEGImages/{image_id}.raw"
+        image_file = self.root / f"JPEGImages/{image_id}.jpg"
         image = skimage.io.imread(str(image_file))
+        image = gray2rgb(image)
+        
+        # print(image.shape)
+        # print("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+        # print(image_id)
         return image
 
+    # def _read_image(self, image_id):
+    #     image_file = self.root / f"JPEGImages/{image_id}.jpg"
+    #     image = cv2.imread(str(image_file))
+    #     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    #     return image
 
 
+
+class ProposedDatasetPredict():
+    
+    def __init__(self, root, transform=None, target_transform=None, is_test=False, keep_difficult=False, label_file=None):
+        """Dataset for VOC data.
+        Args:
+            root: the root of the VOC2007 or VOC2012 dataset, the directory contains the following sub-directories:
+                Annotations, ImageSets, JPEGImages, SegmentationClass, SegmentationObject.
+        """
+        # rootをクライアントごとに設定しないといけない？
+        self.root = pathlib.Path(root)
+        self.transform = transform
+        self.target_transform = target_transform
+        if is_test:
+            # ここかえられるようにしないといけない
+            image_sets_file = self.root / "ImageSets/Main/test.txt"
+        else:
+            #　ここも変えられるようにしないといけない
+            image_sets_file = self.root / "ImageSets/Main/trainval.txt"
+        self.ids = ProposedDataset._read_image_ids(image_sets_file)
+        self.keep_difficult = keep_difficult
+        
+        # if the labels file exists, read in the class names
+        # labels.txt が必要
+        label_file_name = self.root / "labels.txt"
+        
+        if os.path.isfile(label_file_name):
+            class_string = ""
+            with open(label_file_name, 'r') as infile:
+                for line in infile:
+                    class_string += line.rstrip()
+            
+            # classes should be a comma separated list
+            
+            classes = class_string.split(',')
+            # prepend BACKGROUND as first class
+            classes.insert(0, 'BACKGROUND')
+            classes  = [ elem.replace(" ", "") for elem in classes]
+            self.class_names = tuple(classes)
+            logging.info("VOC Labels read from file: " + str(self.class_names))
+            
+        else:
+            logging.info("No labels file, using default VOC classes.")
+            self.class_names = ('BACKGROUND',
+            'aeroplane', 'bicycle', 'bird', 'boat',
+            'bottle', 'bus', 'car', 'cat', 'chair',
+            'cow', 'diningtable', 'dog', 'horse',
+            'motorbike', 'person', 'pottedplant',
+            'sheep', 'sofa', 'train', 'tvmonitor')
+            
+        self.class_dict = {class_name: i for i, class_name in enumerate(self.class_names)}
+        
+        
+    def get_image(self, image):
+        if self.transform:
+            image, _ = self.transform(image)
+        return image
+    

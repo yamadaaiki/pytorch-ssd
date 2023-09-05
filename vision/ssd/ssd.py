@@ -4,6 +4,8 @@ import numpy as np
 from typing import List, Tuple
 import torch.nn.functional as F
 
+from ..nn.scaled_l2_norm import ScaledL2Norm
+
 from ..utils import box_utils
 from collections import namedtuple
 GraphPath = namedtuple("GraphPath", ['s0', 'name', 's1'])  #
@@ -193,3 +195,62 @@ class MatchPrior(object):
 def _xavier_init_(m: nn.Module):
     if isinstance(m, nn.Conv2d):
         nn.init.xavier_uniform_(m.weight)
+
+
+class Proposed_SSD(SSD):
+    def __init__(self, num_classes: int, base_net: nn.ModuleList, source_layer_indexes: List[int],
+                 extras: nn.ModuleList, classification_headers: nn.ModuleList,
+                 regression_headers: nn.ModuleList, is_test=False, config=None, device=None):
+        """Compose a SSD model using the given components.
+        """
+        super(Proposed_SSD, self).__init__(num_classes, base_net, source_layer_indexes,
+                                            extras, classification_headers, 
+                                            regression_headers, is_test, config, device)
+        
+        self.L2norm1 = ScaledL2Norm(128, 10)
+        self.L2norm2 = ScaledL2Norm(256, 5)
+    
+    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        
+        confidences = []
+        locations = []
+        header_index = 0
+        
+        for index, base_net_layer in enumerate(self.base_net):
+            x = base_net_layer(x)
+            
+            if index == 10:
+                output = self.L2norm1(x)
+                
+            elif index == 17:
+                output = self.L2norm2(x)
+            
+            elif index == 22:
+                output =x
+            
+            if index in [10, 17, 22]:
+                confidence, location = self.compute_header(header_index, output)
+                header_index += 1
+                confidences.append(confidence)
+                locations.append(location)
+            
+        for idx, layer in enumerate(self.extras):
+            x = layer(x)
+            if idx in [2, 7, 12]:
+                confidence, location = self.compute_header(header_index, x)
+                header_index += 1
+                confidences.append(confidence)
+                locations.append(location)
+        
+        confidences = torch.cat(confidences, 1)
+        locations = torch.cat(locations, 1)
+        
+        if self.is_test:
+            confidences = F.softmax(confidences, dim=2)
+            boxes = box_utils.convert_locations_to_boxes(
+                locations, self.priors, self.config.center_variance, self.config.size_variance
+            )
+            boxes = box_utils.center_form_to_corner_form(boxes)
+            return confidences, boxes
+        else:
+            return confidences, locations

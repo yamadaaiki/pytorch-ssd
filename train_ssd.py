@@ -28,6 +28,10 @@ from vision.ssd.data_preprocessing import TrainAugmentation, TestTransform
 
 from vision.ssd.proposed_ssd import create_proposed_ssd
 
+from torch.utils.tensorboard import SummaryWriter
+
+writer = SummaryWriter("/home/yamadaaiki/pytorch-ssd/runs/fashion_model_1")
+
 parser = argparse.ArgumentParser(
     description='Single Shot MultiBox Detector Training With Pytorch')
 
@@ -53,11 +57,11 @@ parser.add_argument('--mb2_width_mult', default=1.0, type=float,
 # Params for SGD
 parser.add_argument('--lr', '--learning-rate', default=1e-3, type=float,
                     help='initial learning rate')
-parser.add_argument('--momentum', default=0.9, type=float,
+parser.add_argument('--momentum', default=0, type=float,
                     help='Momentum value for optim')
-parser.add_argument('--weight_decay', default=5e-4, type=float,
+parser.add_argument('--weight_decay', default=0, type=float,
                     help='Weight decay for SGD')
-parser.add_argument('--gamma', default=0.1, type=float,
+parser.add_argument('--gamma', default=0, type=float,
                     help='Gamma update for SGD')
 parser.add_argument('--base_net_lr', default=None, type=float,
                     help='initial learning rate for base net.')
@@ -205,9 +209,9 @@ if __name__ == '__main__':
         sys.exit(1)
     # 画像変換クラス
     train_transform = TrainAugmentation(config.image_size, config.image_mean, config.image_std)
-    # デフォルボックス生成
+    #
     target_transform = MatchPrior(config.priors, config.center_variance,
-                                  config.size_variance, 0.1)
+                                  config.size_variance, 0.2)
     # target_transform = (locations=(num_priors, 4)), labels=(class_num))
     # for validationset
     test_transform = TestTransform(config.image_size, config.image_mean, config.image_std)
@@ -231,13 +235,13 @@ if __name__ == '__main__':
             num_classes = len(dataset.class_names)
             # ['BACKGROUND', 'Handgun', 'Shotogun']
             # print(dataset.class_names)
-        elif args.dataseta_type == 'metastasis_images':
+        elif args.dataset_type == 'metastasis_images':
             dataset = ProposedDataset(dataset_path, transform=train_transform,
                                       target_transform=target_transform)
             label_file = os.path.join(args.checkpoint_folder, "proposed-model-labels.txt")
             # TODO:kakuninn
             store_labels(label_file, dataset.class_names)
-            num_class = len(dataset.class_names)
+            num_classes = len(dataset.class_names)
         else:
             raise ValueError(f"Dataset type {args.dataset_type} is not supported.")
         datasets.append(dataset)
@@ -259,7 +263,6 @@ if __name__ == '__main__':
     elif args.dataset_type == 'metastasis_images':
         val_dataset = ProposedDataset(args.validation_dataset, transform=test_transform,
                                       target_transform=target_transform, is_test=True)
-        #kaenitoikenai
         logging.info(val_dataset)
     logging.info("validation dataset size: {}".format(len(val_dataset)))
 
@@ -270,7 +273,19 @@ if __name__ == '__main__':
     net = create_net(num_classes)
     min_loss = -10000.0
     last_epoch = -1
-
+    
+    # dataiter = iter(train_loader)
+    # images, box, _ = dataiter.next()
+    
+    # import torchvision
+    # img_grid = torchvision.utils.make_grid(images)
+    
+    # writer.add_image("aaa", img_grid)
+    # writer.add_graph(net, images)
+    # writer.close()
+    
+    # raise
+    
     base_net_lr = args.base_net_lr if args.base_net_lr is not None else args.lr
     extra_layers_lr = args.extra_layers_lr if args.extra_layers_lr is not None else args.lr
     if args.freeze_base_net:
@@ -295,17 +310,19 @@ if __name__ == '__main__':
         params = itertools.chain(net.regression_headers.parameters(), net.classification_headers.parameters())
         logging.info("Freeze all the layers except prediction heads.")
     else:
-        params = [
-            {'params': net.base_net.parameters(), 'lr': base_net_lr},
-            {'params': itertools.chain(
-                net.source_layer_add_ons.parameters(),
-                net.extras.parameters()
-            ), 'lr': extra_layers_lr},
-            {'params': itertools.chain(
-                net.regression_headers.parameters(),
-                net.classification_headers.parameters()
-            )}
-        ]
+        # params = [
+        #     {'params': net.base_net.parameters(), 'lr': base_net_lr},
+        #     {'params': itertools.chain(
+        #         net.source_layer_add_ons.parameters(),
+        #         net.extras.parameters()
+        #     ), 'lr': extra_layers_lr},
+        #     {'params': itertools.chain(
+        #         net.regression_headers.parameters(),
+        #         net.classification_headers.parameters()
+        #     )}
+        # ]
+        
+        params = net.parameters()
         
     timer.start("Load Model")
     if args.resume:

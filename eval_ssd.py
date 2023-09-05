@@ -3,8 +3,10 @@ from vision.ssd.vgg_ssd import create_vgg_ssd, create_vgg_ssd_predictor
 from vision.ssd.mobilenetv1_ssd import create_mobilenetv1_ssd, create_mobilenetv1_ssd_predictor
 from vision.ssd.mobilenetv1_ssd_lite import create_mobilenetv1_ssd_lite, create_mobilenetv1_ssd_lite_predictor
 from vision.ssd.squeezenet_ssd_lite import create_squeezenet_ssd_lite, create_squeezenet_ssd_lite_predictor
+from vision.ssd.proposed_ssd import create_proposed_ssd_predictor, create_proposed_ssd
 from vision.datasets.voc_dataset import VOCDataset
 from vision.datasets.open_images import OpenImagesDataset
+from vision.datasets.proposed_dataset import ProposedDataset
 from vision.utils import box_utils, measurements
 from vision.utils.misc import str2bool, Timer
 import argparse
@@ -17,7 +19,7 @@ from vision.ssd.mobilenetv3_ssd_lite import create_mobilenetv3_large_ssd_lite, c
 
 
 parser = argparse.ArgumentParser(description="SSD Evaluation on VOC Dataset.")
-parser.add_argument('--net', default="vgg16-ssd",
+parser.add_argument('--net', default="mb1-ssd",
                     help="The network architecture, it should be of mb1-ssd, mb1-ssd-lite, mb2-ssd-lite or vgg16-ssd.")
 parser.add_argument("--trained_model", type=str)
 
@@ -130,6 +132,8 @@ if __name__ == '__main__':
         dataset = VOCDataset(args.dataset, is_test=True)
     elif args.dataset_type == 'open_images':
         dataset = OpenImagesDataset(args.dataset, dataset_type="test")
+    elif args.dataset_type == 'proposed':
+        dataset = ProposedDataset(args.dataset, is_test=True)
 
     true_case_stat, all_gb_boxes, all_difficult_cases = group_annotation_by_class(dataset)
     if args.net == 'vgg16-ssd':
@@ -146,6 +150,9 @@ if __name__ == '__main__':
         net = create_mobilenetv3_large_ssd_lite(len(class_names), is_test=True)
     elif args.net == 'mb3-small-ssd-lite':
         net = create_mobilenetv3_small_ssd_lite(len(class_names), is_test=True)
+    elif args.net == 'proposed-ssd':
+        net = create_proposed_ssd(len(class_names), is_test=True)
+        print(class_names)
     else:
         logging.fatal("The net type is wrong. It should be one of vgg16-ssd, mb1-ssd and mb1-ssd-lite.")
         parser.print_help(sys.stderr)
@@ -165,7 +172,9 @@ if __name__ == '__main__':
         predictor = create_squeezenet_ssd_lite_predictor(net,nms_method=args.nms_method, device=DEVICE)
     elif args.net == 'mb2-ssd-lite' or args.net == "mb3-large-ssd-lite" or args.net == "mb3-small-ssd-lite":
         predictor = create_mobilenetv2_ssd_lite_predictor(net, nms_method=args.nms_method, device=DEVICE)
-    else:
+    elif args.net == "proposed-ssd":
+        predictor = create_proposed_ssd_predictor(net, nms_method=args.nms_method, device=DEVICE)
+    else:    
         logging.fatal("The net type is wrong. It should be one of vgg16-ssd, mb1-ssd and mb1-ssd-lite.")
         parser.print_help(sys.stderr)
         sys.exit(1)
@@ -186,7 +195,16 @@ if __name__ == '__main__':
             probs.reshape(-1, 1),
             boxes + 1.0  # matlab's indexes start from 1
         ], dim=1))
+        # print("gggggggggggggggggggggggggg")
+        # print(f"{boxes}\n{labels}\n{probs}")
+        # print("oooooooooooooooooooooooooooo")
+        # print(indexes.reshape(-1,1))
+        
     results = torch.cat(results)
+    
+    print(results[0])
+    print(results[1])
+    
     for class_index, class_name in enumerate(class_names):
         if class_index == 0: continue  # ignore background
         prediction_path = eval_path / f"det_test_{class_name}.txt"
@@ -201,6 +219,8 @@ if __name__ == '__main__':
                 )
     aps = []
     print("\n\nAverage Precision Per-class:")
+    print(class_names)
+    print(true_case_stat.items())
     for class_index, class_name in enumerate(class_names):
         if class_index == 0:
             continue

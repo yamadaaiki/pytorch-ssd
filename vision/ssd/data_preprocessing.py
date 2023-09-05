@@ -21,14 +21,14 @@ class TrainAugmentation:
         self.augment = Compose([
             ConvertFromInts(), # np.float32 に変換するクラス
             # PhotometricDistort(), # 測光のゆがみを入れるクラス
-            Expand(self.mean), # 拡大・縮小（平均から行う）クラス
-            RandomSampleCrop(), # ランダムにクロッピングを行うクラス
+            # Expand(self.mean), # 拡大・縮小（平均から行う）クラス
+            # RandomSampleCrop(), # ランダムにクロッピングを行うクラス
             RandomMirror(), # 左右反転クラス
             ToPercentCoords(), # 座標のrangeを0-255から0-1に変換するクラス
             Resize(self.size), # 画像サイズを変更するクラス
             # 画像のタイプをnp.float32 -> np.float32に変換し，
             # 全画素からstdを引いた値にするクラス
-            SubtractMeans(self.mean),
+            # SubtractMeans(self.mean),
             #lambda img, boxes=None, labels=None: (img / std, boxes, labels),
             ScaleByStd(std), # stdで画素を割るクラス
             ToTensor(), # np.float32からテンソルに変換するクラス
@@ -51,7 +51,7 @@ class TestTransform:
             Resize(size), # 画像サイズを変更するクラス
             # 画像のタイプをnp.float32 -> np.float32に変換し，
             # 全画素からstdを引いた値にするクラス
-            SubtractMeans(mean), 
+            # SubtractMeans(mean), 
             #lambda img, boxes=None, labels=None: (img / std, boxes, labels),
             ScaleByStd(std), # stdで画素を割るクラス
             ToTensor(), # np.float32からテンソルに変換するクラス
