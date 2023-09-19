@@ -16,6 +16,34 @@ def create_vgg_ssd(num_classes, is_test=False):
         (23, BatchNorm2d(512)),
         len(base_net),
     ]
+    # extras = ModuleList([
+    #     Sequential(
+    #         Conv2d(in_channels=1024, out_channels=256, kernel_size=1),
+    #         ReLU(),
+    #         Conv2d(in_channels=256, out_channels=512, kernel_size=3, stride=2, padding=1),
+    #         ReLU()
+    #     ),
+    #     Sequential(
+    #         Conv2d(in_channels=512, out_channels=128, kernel_size=1),
+    #         ReLU(),
+    #         Conv2d(in_channels=128, out_channels=256, kernel_size=3, stride=2, padding=1),
+    #         ReLU()
+    #     ),
+    #     Sequential(
+    #         Conv2d(in_channels=256, out_channels=128, kernel_size=1),
+    #         ReLU(),
+    #         Conv2d(in_channels=128, out_channels=256, kernel_size=3),
+    #         ReLU()
+    #     ),
+    #     Sequential(
+    #         Conv2d(in_channels=256, out_channels=128, kernel_size=1),
+    #         ReLU(),
+    #         Conv2d(in_channels=128, out_channels=256, kernel_size=3),
+    #         ReLU()
+    #     )
+    # ])
+    
+    # for input size 256 * 256
     extras = ModuleList([
         Sequential(
             Conv2d(in_channels=1024, out_channels=256, kernel_size=1),
@@ -38,7 +66,7 @@ def create_vgg_ssd(num_classes, is_test=False):
         Sequential(
             Conv2d(in_channels=256, out_channels=128, kernel_size=1),
             ReLU(),
-            Conv2d(in_channels=128, out_channels=256, kernel_size=3),
+            Conv2d(in_channels=128, out_channels=256, kernel_size=2),
             ReLU()
         )
     ])
