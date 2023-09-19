@@ -76,9 +76,11 @@ class SSD(nn.Module):
 
         for layer in self.base_net[end_layer_index:]:
             x = layer(x)
+            # print(x.size())
 
         for layer in self.extras:
             x = layer(x)
+            # print(x.size())
             confidence, location = self.compute_header(header_index, x)
             header_index += 1
             confidences.append(confidence)
