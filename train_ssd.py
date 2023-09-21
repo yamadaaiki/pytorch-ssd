@@ -22,7 +22,10 @@ from vision.nn.multibox_loss import MultiboxLoss
 from vision.ssd.config import vgg_ssd_config
 from vision.ssd.config import mobilenetv1_ssd_config
 from vision.ssd.config import squeezenet_ssd_config
+from vision.ssd.config import proposed_ssd_config
 from vision.ssd.data_preprocessing import TrainAugmentation, TestTransform
+
+from vision.ssd.proposed_ssd import create_proposed_ssd
 
 parser = argparse.ArgumentParser(
     description='Single Shot MultiBox Detector Training With Pytorch')
@@ -36,7 +39,7 @@ parser.add_argument('--balance_data', action='store_true',
                     help="Balance training data by down-sampling more frequent labels.")
 
 
-parser.add_argument('--net', default="vgg16-ssd",
+parser.add_argument('--net', default="proposed-ssd",
                     help="The network architecture, it can be mb1-ssd, mb1-lite-ssd, mb2-ssd-lite, mb3-large-ssd-lite, mb3-small-ssd-lite or vgg16-ssd.")
 parser.add_argument('--freeze_base_net', action='store_true',
                     help="Freeze base net layers.")
@@ -49,9 +52,9 @@ parser.add_argument('--mb2_width_mult', default=1.0, type=float,
 # Params for SGD
 parser.add_argument('--lr', '--learning-rate', default=1e-3, type=float,
                     help='initial learning rate')
-parser.add_argument('--momentum', default=0.9, type=float,
+parser.add_argument('--momentum', default=0, type=float,
                     help='Momentum value for optim')
-parser.add_argument('--weight_decay', default=5e-4, type=float,
+parser.add_argument('--weight_decay', default=0, type=float,
                     help='Weight decay for SGD')
 parser.add_argument('--gamma', default=0.1, type=float,
                     help='Gamma update for SGD')
@@ -85,7 +88,7 @@ parser.add_argument('--batch_size', default=32, type=int,
                     help='Batch size for training')
 parser.add_argument('--num_epochs', default=120, type=int,
                     help='the number epochs')
-parser.add_argument('--num_workers', default=4, type=int,
+parser.add_argument('--num_workers', default=2, type=int,
                     help='Number of workers used in dataloading')
 parser.add_argument('--validation_epochs', default=5, type=int,
                     help='the number epochs')
@@ -193,6 +196,9 @@ if __name__ == '__main__':
     elif args.net == 'mb3-small-ssd-lite':
         create_net = lambda num: create_mobilenetv3_small_ssd_lite(num)
         config = mobilenetv1_ssd_config
+    elif args.net == 'proposed-ssd':
+        create_net = lambda num: create_proposed_ssd(num)
+        config = proposed_ssd_config
     else:
         logging.fatal("The net type is wrong.")
         parser.print_help(sys.stderr)
@@ -273,17 +279,19 @@ if __name__ == '__main__':
         params = itertools.chain(net.regression_headers.parameters(), net.classification_headers.parameters())
         logging.info("Freeze all the layers except prediction heads.")
     else:
-        params = [
-            {'params': net.base_net.parameters(), 'lr': base_net_lr},
-            {'params': itertools.chain(
-                net.source_layer_add_ons.parameters(),
-                net.extras.parameters()
-            ), 'lr': extra_layers_lr},
-            {'params': itertools.chain(
-                net.regression_headers.parameters(),
-                net.classification_headers.parameters()
-            )}
-        ]
+        # params = [
+        #     {'params': net.base_net.parameters(), 'lr': base_net_lr},
+        #     {'params': itertools.chain(
+        #         net.source_layer_add_ons.parameters(),
+        #         net.extras.parameters()
+        #     ), 'lr': extra_layers_lr},
+        #     {'params': itertools.chain(
+        #         net.regression_headers.parameters(),
+        #         net.classification_headers.parameters()
+        #     )}
+        # ]
+        
+        params = net.parameters()
 
     timer.start("Load Model")
     if args.resume:
