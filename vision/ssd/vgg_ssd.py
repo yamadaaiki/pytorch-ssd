@@ -81,12 +81,13 @@ def create_vgg_ssd(num_classes, is_test=False):
     ])
 
     classification_headers = ModuleList([
-        Conv2d(in_channels=512, out_channels=4 * num_classes, kernel_size=3, padding=1),
-        Conv2d(in_channels=1024, out_channels=6 * num_classes, kernel_size=3, padding=1),
-        Conv2d(in_channels=512, out_channels=6 * num_classes, kernel_size=3, padding=1),
-        Conv2d(in_channels=256, out_channels=6 * num_classes, kernel_size=3, padding=1),
-        Conv2d(in_channels=256, out_channels=4 * num_classes, kernel_size=3, padding=1),
-        Conv2d(in_channels=256, out_channels=4 * num_classes, kernel_size=3, padding=1), # TODO: change to kernel_size=1, padding=0?
+        Conv2d(in_channels=512, out_channels=4 * num_classes, kernel_size=3, padding=1), # 1444 (38*38)
+        Conv2d(in_channels=1024, out_channels=6 * num_classes, kernel_size=3, padding=1), # 391 (19*19)
+        Conv2d(in_channels=512, out_channels=6 * num_classes, kernel_size=3, padding=1), # 100 (10*10)
+        Conv2d(in_channels=256, out_channels=6 * num_classes, kernel_size=3, padding=1), # 25 (5*5)
+        Conv2d(in_channels=256, out_channels=4 * num_classes, kernel_size=3, padding=1), # 9 (3*3)
+        Conv2d(in_channels=256, out_channels=4 * num_classes, kernel_size=3, padding=1), # 1 (1*1)
+        # TODO: change to kernel_size=1, padding=0?
     ])
 
     return SSD(num_classes, base_net, source_layer_indexes,

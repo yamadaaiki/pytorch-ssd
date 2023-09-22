@@ -5,13 +5,15 @@ import torch.nn as nn
 
 from .ssd import ProposedSDD
 from .predictor import Predictor
-from .config import proposed_ssd_config as config
+from .config import amemiya_ssd_config as config
 
 
-def create_proposed_ssd(num_classes, is_test=False, in_channels=3):
+def create_amemiya_ssd(num_classes, is_test=False, in_channels=3):
     base_net = ModuleList([
         # block 1
         nn.Conv2d(in_channels=in_channels, out_channels=64, kernel_size=3, padding='same', stride=1),
+        nn.ReLU(inplace=False),
+        nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding='same', stride=1),
         nn.ReLU(inplace=False),
         nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding='same', stride=1),
         nn.ReLU(inplace=False),
@@ -71,6 +73,7 @@ def create_proposed_ssd(num_classes, is_test=False, in_channels=3):
     
     regression_headers = ModuleList([
         nn.Conv2d(in_channels=128,  out_channels=4 * 4, kernel_size=3, padding=1),
+        nn.Conv2d(in_channels=128,  out_channels=4 * 4, kernel_size=3, padding=1),
         nn.Conv2d(in_channels=256,  out_channels=6 * 4, kernel_size=3, padding=1),
         nn.Conv2d(in_channels=1024, out_channels=6 * 4, kernel_size=3, padding=1),
         nn.Conv2d(in_channels=512,  out_channels=6 * 4, kernel_size=3, padding=1),
@@ -78,6 +81,7 @@ def create_proposed_ssd(num_classes, is_test=False, in_channels=3):
         nn.Conv2d(in_channels=256,  out_channels=4 * 4, kernel_size=3, padding=1), ]) # TODO: change to kernel_size=1, padding=0?
     
     classification_headers = ModuleList([
+        nn.Conv2d(in_channels=128,  out_channels=4 * num_classes, kernel_size=3, padding=1),
         nn.Conv2d(in_channels=128,  out_channels=4 * num_classes, kernel_size=3, padding=1), # 16384 128*128
         nn.Conv2d(in_channels=256,  out_channels=6 * num_classes, kernel_size=3, padding=1), # 4096 64*64
         nn.Conv2d(in_channels=1024, out_channels=6 * num_classes, kernel_size=3, padding=1), # 441 21*21

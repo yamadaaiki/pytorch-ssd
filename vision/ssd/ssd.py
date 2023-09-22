@@ -200,6 +200,7 @@ class ProposedSDD(SSD):
         header_index = 0
         
         for index, base_net_layer in enumerate(self.base_net):
+            # print(base_net_layer)
             
             x = base_net_layer(x)
             
@@ -209,9 +210,11 @@ class ProposedSDD(SSD):
             elif index == 17:
                 # print(f"index : {index}, base_net_layer : {base_net_layer}")
                 output = self.L2norm2(x)
+                # print(output.size())
             elif index == 22:
                 # print(f"index : {index}, base_net_layer : {base_net_layer}")
                 output = x
+                # print(x.size())
             
             if index in [10, 17, 22]:
                 # print(f"index : {index}, header_index : {header_index},base_net_layer : {base_net_layer}")
@@ -240,3 +243,49 @@ class ProposedSDD(SSD):
             return confidences, boxes
         else:
             return confidences, locations
+
+
+class AmemiyaSSD(SSD):
+    def __init__(self, num_classes:int, base_net: nn.ModuleList, source_layer_indexes: List[int],
+                 extras: nn.ModuleList, classification_headers: nn.ModuleList,
+                 regression_headers: nn.ModuleList, is_test=False, config=None, device=None):
+        """_summary_
+
+        Args:
+            num_classes (int): _description_
+            base_net (nn.ModuleList): _description_
+            source_layer_indexes (List[int]): _description_
+            extras (nn.ModuleList): _description_
+            classification_headers (nn.ModuleList): _description_
+            regression_headers (nn.ModuleList): _description_
+            is_test (bool, optional): _description_. Defaults to False.
+            config (_type_, optional): _description_. Defaults to None.
+            device (_type_, optional): _description_. Defaults to None.
+        """
+        
+        super(ProposedSDD, self).__init__(num_classes, base_net, source_layer_indexes,
+                                          extras, classification_headers,
+                                          regression_headers, is_test, config, device)
+        
+        self.L2norm1 = ScaledL2Norm(128, 10)
+        self.L2norm2 = ScaledL2Norm(256, 5)
+        self.L2norm3 = ScaledL2Norm()
+        self.L2norm4 = ScaledL2Norm()
+        self.Deconv = nn.ConvTranspose2d(in_channels=256, out_channels=256, kernel_size=3, stride=2)
+    
+    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+         
+         confidences = []
+         locations = []
+         header_index = 0
+         
+         for index, base_net_layer in enumerate(self.base_net):
+            
+            x = base_net_layer(x)
+            
+            if index == 10:
+                buf_out1 = self.L2norm3(x)
+            elif index == 12:
+                output = self.L2norm1(x)
+            elif index == 17:
+                buf_out2 = self.L2norm
